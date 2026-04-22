@@ -218,6 +218,12 @@ func (d *HostSideManager) cniCmdDelHandler(req *cnitypes.PodRequest) (*cni100.Re
 		// TODO: fix setting Vlan based on network definition in CR
 		vlan := 2 // *req.CNIConf.Vlan
 		d.log.Info("cniCmdDelHandler", "pf", pf, "vf", vf, "mac", mac, "vlan", vlan)
+		// FIXME: DEL path ignores DeleteBridgePort(...) errors.
+		// When bridge-port cleanup fails, stale bridge-port/P4 entries can survive across runs,
+		// causing vsp-p4 programming failures (e.g. "duplicate entry", "entry not found")
+		// and flaky e2e pod-to-pod connectivity.
+		// Follow-up: make DeleteBridgePort return/propagate typed errors, surface metrics/events,
+		// and gate DEL success on confirmed bridge-port cleanup (with safe retry/backoff).
 		d.DeleteBridgePort(pf, vf, vlan, mac)
 	}
 	return nil, nil
